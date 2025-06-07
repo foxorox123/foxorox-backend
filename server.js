@@ -29,5 +29,9 @@ app.post("/create-checkout-session", async (req, res) => {
   }
 });
 
+app.get("/", (req, res) => {
+  res.send("✅ Foxorox backend działa.");
+});
+
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Server running on port ${port}`));
