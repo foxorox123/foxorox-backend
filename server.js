@@ -8,7 +8,7 @@ app.use(cors());
 app.use(bodyParser.json());
 
 const priceIds = {
-  basic_monthly: "price_1ABCDxxx",
+  basic_monthly: "price_1RXdZUQvveS6IpXvhLVrxK4B",
   basic_yearly: "price_1ABCDyyy",
   global_monthly: "price_1ABCDzzz",
   global_yearly: "price_1ABCDkkk"
