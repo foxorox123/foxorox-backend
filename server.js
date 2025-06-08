@@ -5,6 +5,7 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 const app = express();
 
+
 // 🔐 CORS: tylko frontend z Vercela może korzystać
 const corsOptions = {
   origin: "https://foxorox-frontend.vercel.app", // <-- Twój frontend URL
@@ -15,7 +16,7 @@ app.use(cors(corsOptions));
 
 app.use(bodyParser.json());
 
-// 🧾 Cennik Stripe (zamień ID jeśli dodasz kolejne plany)
+// 🧾 Cennik Stripe (zamień ID jeśli dodasz kolejne plany, ok)
 const priceIds = {
   basic_monthly: "price_1RXdZUQvveS6IpXvhLVrxK4B",
   basic_yearly: "price_1ABCDyyy",
