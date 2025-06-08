@@ -4,9 +4,18 @@ const bodyParser = require("body-parser");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 const app = express();
-app.use(cors());
+
+// 🔐 CORS: tylko frontend z Vercela może korzystać
+const corsOptions = {
+  origin: "https://foxorox-frontend.vercel.app", // <-- Twój frontend URL
+  methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type"]
+};
+app.use(cors(corsOptions));
+
 app.use(bodyParser.json());
 
+// 🧾 Cennik Stripe (zamień ID jeśli dodasz kolejne plany)
 const priceIds = {
   basic_monthly: "price_1RXdZUQvveS6IpXvhLVrxK4B",
   basic_yearly: "price_1ABCDyyy",
@@ -14,24 +23,33 @@ const priceIds = {
   global_yearly: "price_1ABCDkkk"
 };
 
+// 🚀 Endpoint do tworzenia sesji Stripe Checkout
 app.post("/create-checkout-session", async (req, res) => {
   const { plan } = req.body;
+  console.log("✔️ Otrzymano żądanie dla planu:", plan);
+
   try {
     const session = await stripe.checkout.sessions.create({
       line_items: [{ price: priceIds[plan], quantity: 1 }],
       mode: "subscription",
-      success_url: "https://twojadomena.pl/success.html",
-      cancel_url: "https://twojadomena.pl/cancel.html"
+      success_url: "https://foxorox-frontend.vercel.app/success.html",
+      cancel_url: "https://foxorox-frontend.vercel.app/cancel.html"
     });
+
+    console.log("✅ Sesja utworzona:", session.url);
     res.json({ url: session.url });
+
   } catch (e) {
+    console.error("❌ Błąd przy tworzeniu sesji:", e.message);
     res.status(500).json({ error: e.message });
   }
 });
 
+// Testowy GET
 app.get("/", (req, res) => {
   res.send("✅ Foxorox backend działa.");
 });
 
+// Start
 const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(`Server running on port ${port}`));
+app.listen(port, () => console.log(`🚀 Serwer działa na porcie ${port}`));
