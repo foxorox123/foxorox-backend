@@ -24,6 +24,35 @@ const priceIds = {
   global_yearly: "price_1RY0cLQvveS6IpXvdkA3BN2D"
 };
 
+// ✅ Endpoint do sprawdzenia aktywnej subskrypcji po emailu
+app.post("/check-subscription", async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const customers = await stripe.customers.list({ email, limit: 1 });
+
+    if (!customers.data.length) {
+      return res.json({ active: false });
+    }
+
+    const customerId = customers.data[0].id;
+
+    const subscriptions = await stripe.subscriptions.list({
+      customer: customerId,
+      status: "active",
+      limit: 1,
+    });
+
+    const isActive = subscriptions.data.length > 0;
+
+    res.json({ active: isActive });
+  } catch (error) {
+    console.error("❌ Błąd przy sprawdzaniu subskrypcji:", error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
 // 🚀 Endpoint do tworzenia sesji Stripe Checkout
 app.post("/create-checkout-session", async (req, res) => {
   const { plan } = req.body;
