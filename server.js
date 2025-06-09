@@ -19,9 +19,9 @@ app.use(bodyParser.json());
 // 🧾 Cennik Stripe (zamień ID jeśli dodasz kolejne plany, ok)
 const priceIds = {
   basic_monthly: "price_1RXdZUQvveS6IpXvhLVrxK4B",
-  basic_yearly: "price_1ABCDyyy",
-  global_monthly: "price_1ABCDzzz",
-  global_yearly: "price_1ABCDkkk"
+  basic_yearly: "price_1RY0mDQvveS6IpXv4UL1u3RE",
+  global_monthly: "price_1RY0pYQvveS6IpXvhyJQEk4Y",
+  global_yearly: "price_1RY0cLQvveS6IpXvdkA3BN2D"
 };
 
 // 🚀 Endpoint do tworzenia sesji Stripe Checkout
