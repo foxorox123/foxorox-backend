@@ -33,7 +33,7 @@ app.post("/create-checkout-session", async (req, res) => {
     const session = await stripe.checkout.sessions.create({
       line_items: [{ price: priceIds[plan], quantity: 1 }],
       mode: "subscription",
-      success_url: "https://foxorox-frontend.vercel.app/success.html",
+      success_url: "https://foxorox-frontend.vercel.app/tips",
       cancel_url: "https://foxorox-frontend.vercel.app/cancel.html"
     });
 
