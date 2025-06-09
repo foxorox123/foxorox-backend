@@ -19,7 +19,7 @@ app.use(bodyParser.json());
 // 🧾 Cennik Stripe (zamień ID jeśli dodasz kolejne plany, ok)
 const priceIds = {
   basic_monthly: "price_1RXdZUQvveS6IpXvhLVrxK4B",
-  basic_yearly: "price_1RY0mDQvveS6IpXv4UL1u3RE",
+  basic_yearly: "price_1RY3QnQvveS6IpXvZF5cQfW2",
   global_monthly: "price_1RY0pYQvveS6IpXvhyJQEk4Y",
   global_yearly: "price_1RY0cLQvveS6IpXvdkA3BN2D"
 };
