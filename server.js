@@ -62,10 +62,18 @@ app.post("/create-checkout-session", async (req, res) => {
   const redirectPath = redirectMap[plan] || "tips"; // fallback na /tips
 
   try {
+    let successUrl = "https://foxorox-frontend.vercel.app/dashboard";
+
+    if (plan.startsWith("basic")) {
+      successUrl = "https://foxorox-frontend.vercel.app/downloads/basic";
+    } else if (plan.startsWith("global")) {
+      successUrl = "https://foxorox-frontend.vercel.app/downloads/premium";
+    }
+
     const session = await stripe.checkout.sessions.create({
       line_items: [{ price: priceIds[plan], quantity: 1 }],
       mode: "subscription",
-      success_url: `https://foxorox-frontend.vercel.app/${redirectPath}`,
+      success_url: successUrl,
       cancel_url: "https://foxorox-frontend.vercel.app/cancel.html"
     });
 
@@ -76,6 +84,7 @@ app.post("/create-checkout-session", async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+
 
 
 // 🔒 Endpoint do pobierania .exe – tylko z aktywną subskrypcją
