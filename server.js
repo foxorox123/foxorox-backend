@@ -48,16 +48,24 @@ app.post("/check-subscription", async (req, res) => {
   }
 });
 
-// 🚀 Tworzenie sesji Stripe Checkout
 app.post("/create-checkout-session", async (req, res) => {
   const { plan } = req.body;
   console.log("✔️ Otrzymano żądanie dla planu:", plan);
+
+  const redirectMap = {
+    basic_monthly: "downloads/basic",
+    basic_yearly: "downloads/basic",
+    global_monthly: "downloads/premium",
+    global_yearly: "downloads/premium"
+  };
+
+  const redirectPath = redirectMap[plan] || "tips"; // fallback na /tips
 
   try {
     const session = await stripe.checkout.sessions.create({
       line_items: [{ price: priceIds[plan], quantity: 1 }],
       mode: "subscription",
-      success_url: "https://foxorox-frontend.vercel.app/tips",
+      success_url: `https://foxorox-frontend.vercel.app/${redirectPath}`,
       cancel_url: "https://foxorox-frontend.vercel.app/cancel.html"
     });
 
@@ -68,6 +76,7 @@ app.post("/create-checkout-session", async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+
 
 // 🔒 Endpoint do pobierania .exe – tylko z aktywną subskrypcją
 app.get("/download", async (req, res) => {
