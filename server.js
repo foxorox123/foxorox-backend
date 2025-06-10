@@ -61,6 +61,7 @@ app.post("/create-checkout-session", async (req, res) => {
 
   const redirectPath = redirectMap[plan] || "tips"; // fallback na /tips
 
+
   try {
     let successUrl = "https://foxorox-frontend.vercel.app/dashboard";
 
