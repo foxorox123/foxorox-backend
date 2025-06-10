@@ -62,7 +62,7 @@ app.post("/create-checkout-session", async (req, res) => {
   const redirectPath = redirectMap[plan] || "tips";
 
   try {
-    const successUrl = `https://foxorox-frontend.vercel.app/${redirectPath}?email=${encodeURIComponent(email)}`;
+    const success_url: `https://foxorox-frontend.vercel.app/${redirectPath}?email=${encodeURIComponent(email)}`;
 
     const session = await stripe.checkout.sessions.create({
       line_items: [{ price: priceIds[plan], quantity: 1 }],
