@@ -1,11 +1,10 @@
-// ✅ BACKEND (server.js lub index.js)
-
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const path = require("path");
-const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 require("dotenv").config();
+
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 const app = express();
 
@@ -25,31 +24,31 @@ const priceIds = {
   global_yearly: "price_1RY0cLQvveS6IpXvdkA3BN2D"
 };
 
+const redirectMap = {
+  basic_monthly: "downloads/basic",
+  basic_yearly: "downloads/basic",
+  global_monthly: "downloads/premium",
+  global_yearly: "downloads/premium"
+};
+
 app.post("/create-checkout-session", async (req, res) => {
   const { plan, email } = req.body;
-
-  const redirectMap = {
-    basic_monthly: "downloads/basic",
-    basic_yearly: "downloads/basic",
-    global_monthly: "downloads/premium",
-    global_yearly: "downloads/premium"
-  };
 
   if (!plan || !email) {
     return res.status(400).json({ error: "Missing plan or email" });
   }
 
-  const redirectPath = redirectMap[plan] || "plans"; // fallback na PLANS
+  const redirectPath = redirectMap[plan] || "plans";
 
   try {
     const success_url = `https://foxorox-frontend.vercel.app/${redirectPath}?email=${encodeURIComponent(email)}`;
 
-
     const session = await stripe.checkout.sessions.create({
       line_items: [{ price: priceIds[plan], quantity: 1 }],
       mode: "subscription",
-      success_url: successUrl,
-      cancel_url: "https://foxorox-frontend.vercel.app/cancel.html"
+      customer_email: email,
+      success_url: success_url,
+      cancel_url: "https://foxorox-frontend.vercel.app/plans"
     });
 
     res.json({ url: session.url });
@@ -59,22 +58,25 @@ app.post("/create-checkout-session", async (req, res) => {
   }
 });
 
-
-  const redirectPath = redirectMap[plan] || "tips";
+app.post("/check-subscription", async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: "Missing email" });
 
   try {
-    const success_url: `https://foxorox-frontend.vercel.app/${redirectPath}?email=${encodeURIComponent(email)}`;
+    const customers = await stripe.customers.list({ email, limit: 1 });
+    if (!customers.data.length) return res.json({ active: false });
 
-    const session = await stripe.checkout.sessions.create({
-      line_items: [{ price: priceIds[plan], quantity: 1 }],
-      mode: "subscription",
-      success_url: successUrl,
-      cancel_url: "https://foxorox-frontend.vercel.app/cancel.html"
+    const customerId = customers.data[0].id;
+    const subscriptions = await stripe.subscriptions.list({
+      customer: customerId,
+      status: "active",
+      limit: 1
     });
 
-    res.json({ url: session.url });
+    const isActive = subscriptions.data.length > 0;
+    res.json({ active: isActive });
   } catch (e) {
-    console.error("Error creating session:", e.message);
+    console.error("❌ Błąd subskrypcji:", e.message);
     res.status(500).json({ error: e.message });
   }
 });
@@ -91,7 +93,7 @@ app.get("/download", async (req, res) => {
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId,
       status: "active",
-      limit: 1,
+      limit: 1
     });
 
     if (!subscriptions.data.length) return res.status(403).json({ error: "No active subscription" });
@@ -109,4 +111,4 @@ app.get("/", (req, res) => {
 });
 
 const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(`Server running on port ${port}`));
+app.listen(port, () => console.log(`✅ Server running on port ${port}`));
