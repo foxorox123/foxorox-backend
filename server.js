@@ -73,13 +73,27 @@ app.post("/check-subscription", async (req, res) => {
       limit: 1
     });
 
-    const isActive = subscriptions.data.length > 0;
-    res.json({ active: isActive });
+    const sub = subscriptions.data[0];
+    if (!sub) return res.json({ active: false });
+
+    const priceId = sub.items.data[0].price.id;
+
+    const priceToPlanMap = {
+      [priceIds.basic_monthly]: "basic_monthly",
+      [priceIds.basic_yearly]: "basic_yearly",
+      [priceIds.global_monthly]: "global_monthly",
+      [priceIds.global_yearly]: "global_yearly"
+    };
+
+    const plan = priceToPlanMap[priceId] || "unknown";
+
+    res.json({ active: true, plan });
   } catch (e) {
     console.error("❌ Błąd subskrypcji:", e.message);
     res.status(500).json({ error: e.message });
   }
 });
+
 
 // === Lokalny download z zabezpieczeniem subskrypcji ===
 app.get("/download", async (req, res) => {
