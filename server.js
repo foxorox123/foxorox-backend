@@ -9,14 +9,6 @@ const app = express();
 // Stripe
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
-// AWS SDK
-const AWS = require("aws-sdk");
-const s3 = new AWS.S3({
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  region: process.env.AWS_REGION || "eu-north-1"
-});
-
 // CORS
 const corsOptions = {
   origin: "https://foxorox-frontend.vercel.app",
@@ -89,39 +81,7 @@ app.post("/check-subscription", async (req, res) => {
   }
 });
 
-// === S3 Download with Subscription Check ===
-app.get("/download/s3", async (req, res) => {
-  const email = req.query.email;
-  if (!email) return res.status(400).json({ error: "Missing email" });
-
-  try {
-    const customers = await stripe.customers.list({ email, limit: 1 });
-    if (!customers.data.length) return res.status(403).json({ error: "No customer found" });
-
-    const customerId = customers.data[0].id;
-    const subscriptions = await stripe.subscriptions.list({
-      customer: customerId,
-      status: "active",
-      limit: 1
-    });
-
-    if (!subscriptions.data.length) return res.status(403).json({ error: "No active subscription" });
-
-    const params = {
-      Bucket: "foxorox-downloads-2025", // <- Twój bucket S3
-      Key: "FoxoroxApp.exe", // <- Nazwa pliku w bucket
-      Expires: 600 // link ważny 10 minut
-    };
-
-    const url = s3.getSignedUrl("getObject", params);
-    res.json({ url });
-  } catch (error) {
-    console.error("❌ S3 download error:", error.message);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-// === Old local download (opcjonalnie usuń, jeśli używasz S3) ===
+// === Lokalny download z zabezpieczeniem subskrypcji ===
 app.get("/download", async (req, res) => {
   const email = req.query.email;
   if (!email) return res.status(400).json({ error: "Missing email" });
