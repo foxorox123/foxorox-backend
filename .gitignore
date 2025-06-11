@@ -34,3 +34,4 @@ downloads/*.zip
 *.tgz
 *.tmp
 *.swp
+".env" 
