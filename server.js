@@ -35,6 +35,7 @@ const redirectMap = {
 
 // === Stripe Checkout Session ===
 app.post("/create-checkout-session", async (req, res) => {
+  console.log("🔥 /create-checkout-session hit"); // <--- TUTAJ JEST MIEJSCE
   const { plan, email } = req.body;
   if (!plan || !email) return res.status(400).json({ error: "Missing plan or email" });
 
