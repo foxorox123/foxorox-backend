@@ -15,7 +15,6 @@ const corsOptions = {
   methods: ["GET", "POST"],
   allowedHeaders: ["Content-Type"]
 };
-
 app.use(cors(corsOptions));
 app.use(bodyParser.json());
 
@@ -34,9 +33,9 @@ const redirectMap = {
   global_yearly: "downloads/premium"
 };
 
-// === Stripe Checkout Session ===
+// === Checkout Session ===
 app.post("/create-checkout-session", async (req, res) => {
-  console.log("🔥 /create-checkout-session hit"); // <--- TUTAJ JEST MIEJSCE
+  console.log("🔥 /create-checkout-session hit");
   const { plan, email } = req.body;
   if (!plan || !email) return res.status(400).json({ error: "Missing plan or email" });
 
@@ -77,12 +76,10 @@ app.post("/check-subscription", async (req, res) => {
 
     if (!subscriptions.data.length) return res.json({ active: false });
 
-    // Check saved devices (simple file-based storage, replace with DB if needed)
     const fs = require("fs");
-    const path = require("path");
     const devicesFile = path.join(__dirname, "devices.json");
-
     let devices = {};
+
     if (fs.existsSync(devicesFile)) {
       devices = JSON.parse(fs.readFileSync(devicesFile));
     }
@@ -104,35 +101,8 @@ app.post("/check-subscription", async (req, res) => {
   }
 });
 
-
-// === Lokalny download z zabezpieczeniem subskrypcji ===
-//app.get("/download", async (req, res) => {
-//  const email = req.query.email;
-//  if (!email) return res.status(400).json({ error: "Missing email" });
-
-//  try {
-//    const customers = await stripe.customers.list({ email, limit: 1 });
-//    if (!customers.data.length) return res.status(403).json({ error: "No customer found" });
-
-//    const customerId = customers.data[0].id;
-//    const subscriptions = await stripe.subscriptions.list({
-//      customer: customerId,
-//      status: "active",
-//      limit: 1
-//    });
-
-//    if (!subscriptions.data.length) return res.status(403).json({ error: "No active subscription" });
-
-//    const filePath = path.join(__dirname, "downloads", "FoxoroxApp.exe");
-//    res.download(filePath, "FoxoroxApp.exe");
-//  } catch (error) {
-//    console.error("Download error:", error.message);
-//    res.status(500).json({ error: "Server error" });
-//  }
-//});
-
-// === Download with access check ===
-aapp.get("/download/:type", async (req, res) => {
+// === DOWNLOAD ===
+app.get("/download/:type", async (req, res) => {
   const { email } = req.query;
   const { type } = req.params;
 
@@ -170,7 +140,6 @@ aapp.get("/download/:type", async (req, res) => {
 
     if (!hasAccess) return res.status(403).json({ error: "Unauthorized for this file type" });
 
-    // ✅ Redirect to Google Drive download link
     const driveUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
     res.redirect(driveUrl);
 
@@ -179,8 +148,6 @@ aapp.get("/download/:type", async (req, res) => {
     res.status(500).json({ error: "Server error during download" });
   }
 });
-
-
 
 // === Root ===
 app.get("/", (req, res) => {
