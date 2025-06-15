@@ -132,20 +132,19 @@ app.post("/check-subscription", async (req, res) => {
 //});
 
 // === Download with access check ===
-app.get("/download/:type", async (req, res) => {
+aapp.get("/download/:type", async (req, res) => {
   const { email } = req.query;
   const { type } = req.params;
 
   if (!email) return res.status(400).json({ error: "Missing email" });
 
-  const fs = require("fs");
-  const fileMap = {
-    basic: "FoxoroxBasic.exe",
-    premium: "FoxoroxPremium.exe"
+  const googleDriveFileIds = {
+    basic: "1Rrx0PuvXIqniixZRmi1r-rKYptczp6P5",
+    premium: "1g8TkbYM8kjYGnnepYR8ZG7jkOU0v6dc1"
   };
 
-  const fileName = fileMap[type];
-  if (!fileName) return res.status(400).json({ error: "Invalid download type" });
+  const fileId = googleDriveFileIds[type];
+  if (!fileId) return res.status(400).json({ error: "Invalid download type" });
 
   try {
     const customers = await stripe.customers.list({ email, limit: 1 });
@@ -171,17 +170,16 @@ app.get("/download/:type", async (req, res) => {
 
     if (!hasAccess) return res.status(403).json({ error: "Unauthorized for this file type" });
 
-    const filePath = path.join(__dirname, "downloads", fileName);
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ error: "File not found on server" });
-    }
+    // ✅ Redirect to Google Drive download link
+    const driveUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+    res.redirect(driveUrl);
 
-    res.download(filePath, fileName);
   } catch (error) {
     console.error("Download error:", error.message);
     res.status(500).json({ error: "Server error during download" });
   }
 });
+
 
 
 // === Root ===
