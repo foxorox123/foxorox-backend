@@ -106,9 +106,46 @@ app.post("/check-subscription", async (req, res) => {
 
 
 // === Lokalny download z zabezpieczeniem subskrypcji ===
-app.get("/download", async (req, res) => {
-  const email = req.query.email;
+//app.get("/download", async (req, res) => {
+//  const email = req.query.email;
+//  if (!email) return res.status(400).json({ error: "Missing email" });
+
+//  try {
+//    const customers = await stripe.customers.list({ email, limit: 1 });
+//    if (!customers.data.length) return res.status(403).json({ error: "No customer found" });
+
+//    const customerId = customers.data[0].id;
+//    const subscriptions = await stripe.subscriptions.list({
+//      customer: customerId,
+//      status: "active",
+//      limit: 1
+//    });
+
+//    if (!subscriptions.data.length) return res.status(403).json({ error: "No active subscription" });
+
+//    const filePath = path.join(__dirname, "downloads", "FoxoroxApp.exe");
+//    res.download(filePath, "FoxoroxApp.exe");
+//  } catch (error) {
+//    console.error("Download error:", error.message);
+//    res.status(500).json({ error: "Server error" });
+//  }
+//});
+
+// === Download with access check ===
+app.get("/download/:type", async (req, res) => {
+  const { email } = req.query;
+  const { type } = req.params;
+
   if (!email) return res.status(400).json({ error: "Missing email" });
+
+  const fs = require("fs");
+  const fileMap = {
+    basic: "FoxoroxBasicApp.exe",
+    premium: "FoxoroxPremiumApp.exe"
+  };
+
+  const fileName = fileMap[type];
+  if (!fileName) return res.status(400).json({ error: "Invalid download type" });
 
   try {
     const customers = await stripe.customers.list({ email, limit: 1 });
@@ -123,13 +160,29 @@ app.get("/download", async (req, res) => {
 
     if (!subscriptions.data.length) return res.status(403).json({ error: "No active subscription" });
 
-    const filePath = path.join(__dirname, "downloads", "FoxoroxApp.exe");
-    res.download(filePath, "FoxoroxApp.exe");
+    const priceId = subscriptions.data[0].items.data[0].price.id;
+
+    const allowedBasic = ["price_1RXdZUQvveS6IpXvhLVrxK4B", "price_1RY3QnQvveS6IpXvZF5cQfW2"];
+    const allowedPremium = ["price_1RY0pYQvveS6IpXvhyJQEk4Y", "price_1RY0cLQvveS6IpXvdkA3BN2D"];
+
+    const hasAccess =
+      (type === "basic" && allowedBasic.includes(priceId)) ||
+      (type === "premium" && allowedPremium.includes(priceId));
+
+    if (!hasAccess) return res.status(403).json({ error: "Unauthorized for this file type" });
+
+    const filePath = path.join(__dirname, "downloads", fileName);
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: "File not found on server" });
+    }
+
+    res.download(filePath, fileName);
   } catch (error) {
     console.error("Download error:", error.message);
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({ error: "Server error during download" });
   }
 });
+
 
 // === Root ===
 app.get("/", (req, res) => {
