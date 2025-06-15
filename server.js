@@ -59,8 +59,8 @@ app.post("/create-checkout-session", async (req, res) => {
 
 // === Check Subscription ===
 app.post("/check-subscription", async (req, res) => {
-  const { email } = req.body;
-  if (!email) return res.status(400).json({ error: "Missing email" });
+  const { email, device_id } = req.body;
+  if (!email || !device_id) return res.status(400).json({ error: "Missing email or device_id" });
 
   try {
     const customers = await stripe.customers.list({ email, limit: 1 });
@@ -73,19 +73,27 @@ app.post("/check-subscription", async (req, res) => {
       limit: 1
     });
 
-    const sub = subscriptions.data[0];
-    if (!sub) return res.json({ active: false });
+    if (!subscriptions.data.length) return res.json({ active: false });
 
-    const priceId = sub.items.data[0].price.id;
+    // Check saved devices (simple file-based storage, replace with DB if needed)
+    const fs = require("fs");
+    const path = require("path");
+    const devicesFile = path.join(__dirname, "devices.json");
 
-    const priceToPlanMap = {
-      [priceIds.basic_monthly]: "basic_monthly",
-      [priceIds.basic_yearly]: "basic_yearly",
-      [priceIds.global_monthly]: "global_monthly",
-      [priceIds.global_yearly]: "global_yearly"
-    };
+    let devices = {};
+    if (fs.existsSync(devicesFile)) {
+      devices = JSON.parse(fs.readFileSync(devicesFile));
+    }
 
-    const plan = priceToPlanMap[priceId] || "unknown";
+    if (!devices[email]) {
+      devices[email] = device_id;
+      fs.writeFileSync(devicesFile, JSON.stringify(devices));
+    } else if (devices[email] !== device_id) {
+      return res.status(403).json({ error: "Unauthorized device" });
+    }
+
+    const priceId = subscriptions.data[0].items.data[0].price.id;
+    const plan = Object.entries(priceIds).find(([_, val]) => val === priceId)?.[0] || "unknown";
 
     res.json({ active: true, plan });
   } catch (e) {
