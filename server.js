@@ -11,10 +11,11 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 // CORS
 const corsOptions = {
-  origin: "https://foxorox-frontend.vercel.app",
+  origin: ["https://foxorox-frontend.vercel.app", "https://www.foxorox.com", "https://foxorox.com"],
   methods: ["GET", "POST"],
   allowedHeaders: ["Content-Type"]
 };
+
 app.use(cors(corsOptions));
 app.use(bodyParser.json());
 
