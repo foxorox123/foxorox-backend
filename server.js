@@ -140,8 +140,8 @@ app.get("/download/:type", async (req, res) => {
 
   const fs = require("fs");
   const fileMap = {
-    basic: "FoxoroxBasicApp.exe",
-    premium: "FoxoroxPremiumApp.exe"
+    basic: "FoxoroxBasic.exe",
+    premium: "FoxoroxPremium.exe"
   };
 
   const fileName = fileMap[type];
