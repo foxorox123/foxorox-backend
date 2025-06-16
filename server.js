@@ -31,13 +31,16 @@ const priceIds = {
   global_yearly: "price_1RY0cLQvveS6IpXvdkA3BN2D"
 };
 
-// ✅ ZMIANA TU: success_url kieruje na /processing z query parametrami
+// ✅ Zmieniona logika: success_url kieruje z powrotem do login z flagą fromStripe
 app.post("/create-checkout-session", async (req, res) => {
   console.log("🔥 /create-checkout-session hit");
   const { plan, email } = req.body;
-  if (!plan || !email) return res.status(400).json({ error: "Missing plan or email" });
 
-  const success_url = `https://foxorox-frontend.vercel.app/processing?plan=${encodeURIComponent(plan)}&email=${encodeURIComponent(email)}`;
+  if (!plan || !email) {
+    return res.status(400).json({ error: "Missing plan or email" });
+  }
+
+  const success_url = `https://foxorox-frontend.vercel.app/login?fromStripe=true`;
   const cancel_url = "https://foxorox-frontend.vercel.app/plans";
 
   try {
@@ -51,12 +54,12 @@ app.post("/create-checkout-session", async (req, res) => {
 
     res.json({ url: session.url });
   } catch (e) {
-    console.error("❌ Błąd przy tworzeniu sesji:", e.message);
+    console.error("❌ Stripe session error:", e.message);
     res.status(500).json({ error: e.message });
   }
 });
 
-// === Check Subscription ===
+// Check Subscription
 app.post("/check-subscription", async (req, res) => {
   const { email, device_id } = req.body;
   if (!email || !device_id) return res.status(400).json({ error: "Missing email or device_id" });
@@ -92,12 +95,12 @@ app.post("/check-subscription", async (req, res) => {
     const plan = Object.entries(priceIds).find(([_, val]) => val === priceId)?.[0] || "unknown";
     res.json({ active: true, plan });
   } catch (e) {
-    console.error("❌ Błąd subskrypcji:", e.message);
+    console.error("❌ Subscription check error:", e.message);
     res.status(500).json({ error: e.message });
   }
 });
 
-// === Secure Download ===
+// Secure Download
 app.get("/download/:type", async (req, res) => {
   const { email } = req.query;
   const { type } = req.params;
@@ -144,11 +147,11 @@ app.get("/download/:type", async (req, res) => {
   }
 });
 
-// === Root ===
+// Root
 app.get("/", (req, res) => {
   res.send("Foxorox backend is running.");
 });
 
-// === Start Server ===
+// Start Server
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`✅ Server running on port ${port}`));
