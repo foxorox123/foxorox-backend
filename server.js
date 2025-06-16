@@ -11,14 +11,19 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 // CORS
 const corsOptions = {
-  origin: ["https://foxorox-frontend.vercel.app", "https://www.foxorox.com", "https://foxorox.com"],
+  origin: [
+    "https://foxorox-frontend.vercel.app",
+    "https://www.foxorox.com",
+    "https://foxorox.com"
+  ],
   methods: ["GET", "POST"],
   allowedHeaders: ["Content-Type"]
 };
+
 app.use(cors(corsOptions));
 app.use(bodyParser.json());
 
-// === Stripe Plans ===
+// Stripe Plans
 const priceIds = {
   basic_monthly: "price_1RXdZUQvveS6IpXvhLVrxK4B",
   basic_yearly: "price_1RY3QnQvveS6IpXvZF5cQfW2",
@@ -33,7 +38,7 @@ const redirectMap = {
   global_yearly: "downloads/premium"
 };
 
-// === Checkout Session ===
+// Create Checkout Session
 app.post("/create-checkout-session", async (req, res) => {
   console.log("🔥 /create-checkout-session hit");
   const { plan, email } = req.body;
@@ -50,7 +55,6 @@ app.post("/create-checkout-session", async (req, res) => {
       success_url,
       cancel_url: "https://foxorox-frontend.vercel.app/plans"
     });
-
     res.json({ url: session.url });
   } catch (e) {
     console.error("❌ Błąd przy tworzeniu sesji:", e.message);
@@ -58,7 +62,7 @@ app.post("/create-checkout-session", async (req, res) => {
   }
 });
 
-// === Check Subscription ===
+// Check Subscription
 app.post("/check-subscription", async (req, res) => {
   const { email, device_id } = req.body;
   if (!email || !device_id) return res.status(400).json({ error: "Missing email or device_id" });
@@ -79,7 +83,6 @@ app.post("/check-subscription", async (req, res) => {
     const fs = require("fs");
     const devicesFile = path.join(__dirname, "devices.json");
     let devices = {};
-
     if (fs.existsSync(devicesFile)) {
       devices = JSON.parse(fs.readFileSync(devicesFile));
     }
@@ -93,7 +96,6 @@ app.post("/check-subscription", async (req, res) => {
 
     const priceId = subscriptions.data[0].items.data[0].price.id;
     const plan = Object.entries(priceIds).find(([_, val]) => val === priceId)?.[0] || "unknown";
-
     res.json({ active: true, plan });
   } catch (e) {
     console.error("❌ Błąd subskrypcji:", e.message);
@@ -101,7 +103,7 @@ app.post("/check-subscription", async (req, res) => {
   }
 });
 
-// === DOWNLOAD ===
+// Secure Download with Google Drive Redirect
 app.get("/download/:type", async (req, res) => {
   const { email } = req.query;
   const { type } = req.params;
@@ -142,18 +144,17 @@ app.get("/download/:type", async (req, res) => {
 
     const driveUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
     res.redirect(driveUrl);
-
   } catch (error) {
     console.error("Download error:", error.message);
     res.status(500).json({ error: "Server error during download" });
   }
 });
 
-// === Root ===
+// Root
 app.get("/", (req, res) => {
   res.send("Foxorox backend is running.");
 });
 
-// === Start Server ===
+// Start Server
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`✅ Server running on port ${port}`));
