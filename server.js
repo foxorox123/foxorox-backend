@@ -47,35 +47,46 @@ app.post("/create-checkout-session", async (req, res) => {
 
 app.post("/check-subscription", async (req, res) => {
   const { email, device_id } = req.body;
-  if (!email || !device_id) return res.status(400).json({ error: "Missing email or device_id" });
+
+  console.log("🔍 Sprawdzanie subskrypcji dla:", email, "z urządzenia:", device_id);
+
+  if (!email || !device_id) {
+    console.log("❌ Brak email lub device_id");
+    return res.status(400).json({ error: "Missing email or device_id" });
+  }
 
   try {
     const customers = await stripe.customers.list({ email, limit: 1 });
-    if (!customers.data.length) return res.json({ active: false });
+
+    if (!customers.data.length) {
+      console.log("❌ Nie znaleziono klienta w Stripe.");
+      return res.json({ active: false });
+    }
 
     const customerId = customers.data[0].id;
-    const subscriptions = await stripe.subscriptions.list({ customer: customerId, status: "active", limit: 1 });
-    if (!subscriptions.data.length) return res.json({ active: false });
+    const subscriptions = await stripe.subscriptions.list({
+      customer: customerId,
+      status: "active",
+      limit: 1
+    });
 
-    const devicesFile = path.join(__dirname, "devices.json");
-    let devices = fs.existsSync(devicesFile) ? JSON.parse(fs.readFileSync(devicesFile)) : {};
-
-    if (!devices[email]) {
-      devices[email] = device_id;
-      fs.writeFileSync(devicesFile, JSON.stringify(devices));
-    } else if (devices[email] !== device_id) {
-      return res.status(403).json({ error: "Unauthorized device" });
+    if (!subscriptions.data.length) {
+      console.log("⚠️ Brak aktywnej subskrypcji");
+      return res.json({ active: false });
     }
 
     const priceId = subscriptions.data[0].items.data[0].price.id;
     const plan = Object.entries(priceIds).find(([_, val]) => val === priceId)?.[0] || "unknown";
 
+    console.log("✅ Subskrypcja aktywna. Plan:", plan);
+
     res.json({ active: true, plan });
   } catch (e) {
-    console.error("Check-subscription error:", e.message);
+    console.error("❌ Błąd przy sprawdzaniu subskrypcji:", e.message);
     res.status(500).json({ error: e.message });
   }
 });
+
 
 app.get("/download/:type", async (req, res) => {
   const { email } = req.query;
