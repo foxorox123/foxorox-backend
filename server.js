@@ -47,38 +47,23 @@ app.post("/create-checkout-session", async (req, res) => {
 
 app.post("/check-subscription", async (req, res) => {
   const { email, device_id } = req.body;
-
-  if (!email || !device_id) {
-    return res.status(400).json({ error: "Missing email or device_id" });
-  }
+  if (!email || !device_id) return res.status(400).json({ error: "Missing email or device_id" });
 
   try {
     const customers = await stripe.customers.list({ email, limit: 1 });
     if (!customers.data.length) return res.json({ active: false });
 
     const customerId = customers.data[0].id;
-    const subscriptions = await stripe.subscriptions.list({
-      customer: customerId,
-      status: "active",
-      limit: 1
-    });
-
+    const subscriptions = await stripe.subscriptions.list({ customer: customerId, status: "active", limit: 1 });
     if (!subscriptions.data.length) return res.json({ active: false });
 
-    // ✅ Device lock logic (with failover logging)
-    const devicesFilePath = path.join(__dirname, "devices.json");
-    let devices = {};
-    if (fs.existsSync(devicesFilePath)) {
-      devices = JSON.parse(fs.readFileSync(devicesFilePath));
-    }
+    const devicesFile = path.join(__dirname, "devices.json");
+    let devices = fs.existsSync(devicesFile) ? JSON.parse(fs.readFileSync(devicesFile)) : {};
 
     if (!devices[email]) {
-      // First time login – save device
       devices[email] = device_id;
-      fs.writeFileSync(devicesFilePath, JSON.stringify(devices, null, 2));
+      fs.writeFileSync(devicesFile, JSON.stringify(devices));
     } else if (devices[email] !== device_id) {
-      // Device mismatch – reject
-      console.log(`❌ Access denied for ${email}. Device mismatch.`);
       return res.status(403).json({ error: "Unauthorized device" });
     }
 
@@ -87,7 +72,7 @@ app.post("/check-subscription", async (req, res) => {
 
     res.json({ active: true, plan });
   } catch (e) {
-    console.error("❌ Błąd przy sprawdzaniu subskrypcji:", e.message);
+    console.error("Check-subscription error:", e.message);
     res.status(500).json({ error: e.message });
   }
 });
@@ -127,6 +112,5 @@ app.get("/download/:type", async (req, res) => {
 });
 
 app.get("/", (req, res) => res.send("Foxorox backend is running."));
-
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`✅ Server running on port ${port}`));
