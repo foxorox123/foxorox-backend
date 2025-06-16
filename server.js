@@ -26,7 +26,7 @@ app.post("/create-checkout-session", async (req, res) => {
   const { plan, email } = req.body;
   if (!plan || !email) return res.status(400).json({ error: "Missing plan or email" });
 
-  const success_url = `https://foxorox-frontend.vercel.app/processing?plan=${encodeURIComponent(plan)}&email=${encodeURIComponent(email)}`;
+  const success_url = `https://foxorox-frontend.vercel.app/returning?plan=${encodeURIComponent(plan)}&email=${encodeURIComponent(email)}`;
   const cancel_url = "https://foxorox-frontend.vercel.app/plans";
 
   try {
