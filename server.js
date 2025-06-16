@@ -48,20 +48,13 @@ app.post("/create-checkout-session", async (req, res) => {
 app.post("/check-subscription", async (req, res) => {
   const { email, device_id } = req.body;
 
-  console.log("🔍 Sprawdzanie subskrypcji dla:", email, "z urządzenia:", device_id);
-
   if (!email || !device_id) {
-    console.log("❌ Brak email lub device_id");
     return res.status(400).json({ error: "Missing email or device_id" });
   }
 
   try {
     const customers = await stripe.customers.list({ email, limit: 1 });
-
-    if (!customers.data.length) {
-      console.log("❌ Nie znaleziono klienta w Stripe.");
-      return res.json({ active: false });
-    }
+    if (!customers.data.length) return res.json({ active: false });
 
     const customerId = customers.data[0].id;
     const subscriptions = await stripe.subscriptions.list({
@@ -70,15 +63,27 @@ app.post("/check-subscription", async (req, res) => {
       limit: 1
     });
 
-    if (!subscriptions.data.length) {
-      console.log("⚠️ Brak aktywnej subskrypcji");
-      return res.json({ active: false });
+    if (!subscriptions.data.length) return res.json({ active: false });
+
+    // ✅ Device lock logic (with failover logging)
+    const devicesFilePath = path.join(__dirname, "devices.json");
+    let devices = {};
+    if (fs.existsSync(devicesFilePath)) {
+      devices = JSON.parse(fs.readFileSync(devicesFilePath));
+    }
+
+    if (!devices[email]) {
+      // First time login – save device
+      devices[email] = device_id;
+      fs.writeFileSync(devicesFilePath, JSON.stringify(devices, null, 2));
+    } else if (devices[email] !== device_id) {
+      // Device mismatch – reject
+      console.log(`❌ Access denied for ${email}. Device mismatch.`);
+      return res.status(403).json({ error: "Unauthorized device" });
     }
 
     const priceId = subscriptions.data[0].items.data[0].price.id;
     const plan = Object.entries(priceIds).find(([_, val]) => val === priceId)?.[0] || "unknown";
-
-    console.log("✅ Subskrypcja aktywna. Plan:", plan);
 
     res.json({ active: true, plan });
   } catch (e) {
@@ -86,7 +91,6 @@ app.post("/check-subscription", async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
-
 
 app.get("/download/:type", async (req, res) => {
   const { email } = req.query;
@@ -123,5 +127,6 @@ app.get("/download/:type", async (req, res) => {
 });
 
 app.get("/", (req, res) => res.send("Foxorox backend is running."));
+
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`✅ Server running on port ${port}`));
