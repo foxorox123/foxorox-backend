@@ -1,23 +1,18 @@
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
-const path = require("path");
 require("dotenv").config();
+const fs = require("fs");
+const path = require("path");
 
 const app = express();
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
-const corsOptions = {
-  origin: [
-    "https://foxorox-frontend.vercel.app",
-    "https://www.foxorox.com",
-    "https://foxorox.com"
-  ],
+app.use(cors({
+  origin: ["https://foxorox-frontend.vercel.app", "https://foxorox.com", "https://www.foxorox.com"],
   methods: ["GET", "POST"],
   allowedHeaders: ["Content-Type"]
-};
-
-app.use(cors(corsOptions));
+}));
 app.use(bodyParser.json());
 
 const priceIds = {
@@ -27,7 +22,6 @@ const priceIds = {
   global_yearly: "price_1RY0cLQvveS6IpXvdkA3BN2D"
 };
 
-// ✅ poprawiony redirect do /processing po opłacie
 app.post("/create-checkout-session", async (req, res) => {
   const { plan, email } = req.body;
   if (!plan || !email) return res.status(400).json({ error: "Missing plan or email" });
@@ -51,7 +45,6 @@ app.post("/create-checkout-session", async (req, res) => {
   }
 });
 
-// Subscription check endpoint
 app.post("/check-subscription", async (req, res) => {
   const { email, device_id } = req.body;
   if (!email || !device_id) return res.status(400).json({ error: "Missing email or device_id" });
@@ -61,20 +54,11 @@ app.post("/check-subscription", async (req, res) => {
     if (!customers.data.length) return res.json({ active: false });
 
     const customerId = customers.data[0].id;
-    const subscriptions = await stripe.subscriptions.list({
-      customer: customerId,
-      status: "active",
-      limit: 1
-    });
-
+    const subscriptions = await stripe.subscriptions.list({ customer: customerId, status: "active", limit: 1 });
     if (!subscriptions.data.length) return res.json({ active: false });
 
-    const fs = require("fs");
     const devicesFile = path.join(__dirname, "devices.json");
-    let devices = {};
-    if (fs.existsSync(devicesFile)) {
-      devices = JSON.parse(fs.readFileSync(devicesFile));
-    }
+    let devices = fs.existsSync(devicesFile) ? JSON.parse(fs.readFileSync(devicesFile)) : {};
 
     if (!devices[email]) {
       devices[email] = device_id;
@@ -88,62 +72,45 @@ app.post("/check-subscription", async (req, res) => {
 
     res.json({ active: true, plan });
   } catch (e) {
-    console.error("Subscription error:", e.message);
+    console.error("Check-subscription error:", e.message);
     res.status(500).json({ error: e.message });
   }
 });
 
-// File download (Google Drive)
 app.get("/download/:type", async (req, res) => {
   const { email } = req.query;
   const { type } = req.params;
-
-  if (!email) return res.status(400).json({ error: "Missing email" });
 
   const googleDriveFileIds = {
     basic: "1Rrx0PuvXIqniixZRmi1r-rKYptczp6P5",
     premium: "1g8TkbYM8kjYGnnepYR8ZG7jkOU0v6dc1"
   };
-
   const fileId = googleDriveFileIds[type];
-  if (!fileId) return res.status(400).json({ error: "Invalid download type" });
+  if (!fileId || !email) return res.status(400).json({ error: "Invalid request" });
 
   try {
     const customers = await stripe.customers.list({ email, limit: 1 });
-    if (!customers.data.length) return res.status(403).json({ error: "No customer found" });
+    if (!customers.data.length) return res.status(403).json({ error: "Customer not found" });
 
     const customerId = customers.data[0].id;
-    const subscriptions = await stripe.subscriptions.list({
-      customer: customerId,
-      status: "active",
-      limit: 1
-    });
-
+    const subscriptions = await stripe.subscriptions.list({ customer: customerId, status: "active", limit: 1 });
     if (!subscriptions.data.length) return res.status(403).json({ error: "No active subscription" });
 
     const priceId = subscriptions.data[0].items.data[0].price.id;
-
     const allowedBasic = ["price_1RXdZUQvveS6IpXvhLVrxK4B", "price_1RY3QnQvveS6IpXvZF5cQfW2"];
     const allowedPremium = ["price_1RY0pYQvveS6IpXvhyJQEk4Y", "price_1RY0cLQvveS6IpXvdkA3BN2D"];
+    const isAuthorized = (type === "basic" && allowedBasic.includes(priceId)) || (type === "premium" && allowedPremium.includes(priceId));
 
-    const hasAccess =
-      (type === "basic" && allowedBasic.includes(priceId)) ||
-      (type === "premium" && allowedPremium.includes(priceId));
+    if (!isAuthorized) return res.status(403).json({ error: "Unauthorized" });
 
-    if (!hasAccess) return res.status(403).json({ error: "Unauthorized for this file type" });
-
-    const driveUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
-    res.redirect(driveUrl);
-  } catch (error) {
-    console.error("Download error:", error.message);
-    res.status(500).json({ error: "Server error during download" });
+    const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+    res.redirect(downloadUrl);
+  } catch (e) {
+    console.error("Download error:", e.message);
+    res.status(500).json({ error: "Server error" });
   }
 });
 
-// Default route
-app.get("/", (req, res) => {
-  res.send("Foxorox backend is running.");
-});
-
+app.get("/", (req, res) => res.send("Foxorox backend is running."));
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`✅ Server running on port ${port}`));
