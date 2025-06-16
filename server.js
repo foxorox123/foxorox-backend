@@ -31,21 +31,14 @@ const priceIds = {
   global_yearly: "price_1RY0cLQvveS6IpXvdkA3BN2D"
 };
 
-const redirectMap = {
-  basic_monthly: "downloads/basic",
-  basic_yearly: "downloads/basic",
-  global_monthly: "downloads/premium",
-  global_yearly: "downloads/premium"
-};
-
-// Create Checkout Session
+// === ✅ FIX: success_url always goes to /login ===
 app.post("/create-checkout-session", async (req, res) => {
   console.log("🔥 /create-checkout-session hit");
   const { plan, email } = req.body;
   if (!plan || !email) return res.status(400).json({ error: "Missing plan or email" });
 
-  const redirectPath = redirectMap[plan] || "plans";
-  const success_url = `https://foxorox-frontend.vercel.app/${redirectPath}?email=${encodeURIComponent(email)}`;
+  const success_url = "https://foxorox-frontend.vercel.app/login";
+  const cancel_url = "https://foxorox-frontend.vercel.app/plans";
 
   try {
     const session = await stripe.checkout.sessions.create({
@@ -53,8 +46,9 @@ app.post("/create-checkout-session", async (req, res) => {
       mode: "subscription",
       customer_email: email,
       success_url,
-      cancel_url: "https://foxorox-frontend.vercel.app/plans"
+      cancel_url
     });
+
     res.json({ url: session.url });
   } catch (e) {
     console.error("❌ Błąd przy tworzeniu sesji:", e.message);
@@ -62,7 +56,7 @@ app.post("/create-checkout-session", async (req, res) => {
   }
 });
 
-// Check Subscription
+// === Check Subscription ===
 app.post("/check-subscription", async (req, res) => {
   const { email, device_id } = req.body;
   if (!email || !device_id) return res.status(400).json({ error: "Missing email or device_id" });
@@ -103,7 +97,7 @@ app.post("/check-subscription", async (req, res) => {
   }
 });
 
-// Secure Download with Google Drive Redirect
+// === Secure Download ===
 app.get("/download/:type", async (req, res) => {
   const { email } = req.query;
   const { type } = req.params;
@@ -150,11 +144,11 @@ app.get("/download/:type", async (req, res) => {
   }
 });
 
-// Root
+// === Root ===
 app.get("/", (req, res) => {
   res.send("Foxorox backend is running.");
 });
 
-// Start Server
+// === Start Server ===
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`✅ Server running on port ${port}`));
