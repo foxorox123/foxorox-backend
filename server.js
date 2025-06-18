@@ -38,7 +38,7 @@ app.post("/create-checkout-session", async (req, res) => {
       cancel_url
     });
 
-    res.json({ url: session.url });
+    res.json({ id: session.id, url: session.url });
   } catch (e) {
     console.error("Stripe error:", e.message);
     res.status(500).json({ error: e.message });
