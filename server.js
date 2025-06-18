@@ -77,6 +77,18 @@ app.post("/check-subscription", async (req, res) => {
   }
 });
 
+app.get('/payment-status', async (req, res) => {
+  const sessionId = req.query.session_id;
+
+  try {
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+    res.json({ status: session.payment_status }); // np. 'paid', 'unpaid', 'no_payment_required'
+  } catch (err) {
+    res.status(500).json({ error: 'Nie udało się pobrać sesji' });
+  }
+});
+
 app.get("/download/:type", async (req, res) => {
   const { email } = req.query;
   const { type } = req.params;
