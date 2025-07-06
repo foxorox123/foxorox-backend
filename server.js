@@ -26,7 +26,7 @@ app.post("/create-checkout-session", async (req, res) => {
   const { plan, email } = req.body;
   if (!plan || !email) return res.status(400).json({ error: "Missing plan or email" });
 
-  const success_url = `https://foxorox-frontend.vercel.app/processing?plan=${encodeURIComponent(plan)}&email=${encodeURIComponent(email)}`;
+  //const success_url = `https://foxorox-frontend.vercel.app/processing?plan=${encodeURIComponent(plan)}&email=${encodeURIComponent(email)}`;
   const cancel_url = "https://foxorox-frontend.vercel.app/plans";
 
   try {
@@ -34,7 +34,7 @@ app.post("/create-checkout-session", async (req, res) => {
       line_items: [{ price: priceIds[plan], quantity: 1 }],
       mode: "subscription",
       customer_email: email,
-      success_url,
+      success_url: `https://foxorox-frontend.vercel.app/processing?plan=${encodeURIComponent(plan)}&email=${encodeURIComponent(email)}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url
     });
 
