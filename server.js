@@ -56,7 +56,7 @@ app.post("/check-subscription", async (req, res) => {
     const subscriptions = await stripe.subscriptions.list({ customer: customerId, status: "active", limit: 1 });
     if (!subscriptions.data.length) return res.json({ active: false });
 
-    const devicesFile = path.join(__dirname, "devices.json");
+    const devicesFile = path.join(__dirname, "dashboard_devices.json");
     let devices = fs.existsSync(devicesFile) ? JSON.parse(fs.readFileSync(devicesFile)) : {};
 
     if (!devices[email]) {
