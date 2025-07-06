@@ -26,7 +26,6 @@ app.post("/create-checkout-session", async (req, res) => {
   const { plan, email } = req.body;
   if (!plan || !email) return res.status(400).json({ error: "Missing plan or email" });
 
-  //const success_url = `https://foxorox-frontend.vercel.app/processing?plan=${encodeURIComponent(plan)}&email=${encodeURIComponent(email)}`;
   const cancel_url = "https://foxorox-frontend.vercel.app/plans";
 
   try {
@@ -34,7 +33,7 @@ app.post("/create-checkout-session", async (req, res) => {
       line_items: [{ price: priceIds[plan], quantity: 1 }],
       mode: "subscription",
       customer_email: email,
-      success_url: `https://foxorox-frontend.vercel.app/processing?plan=${encodeURIComponent(plan)}&email=${encodeURIComponent(email)}&session_id={CHECKOUT_SESSION_ID}`,
+      success_url: "https://foxorox-frontend.vercel.app/dashboard",
       cancel_url
     });
 
@@ -83,7 +82,7 @@ app.get('/payment-status', async (req, res) => {
   try {
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
-    res.json({ status: session.payment_status }); // np. 'paid', 'unpaid', 'no_payment_required'
+    res.json({ status: session.payment_status });
   } catch (err) {
     res.status(500).json({ error: 'Nie udało się pobrać sesji' });
   }
