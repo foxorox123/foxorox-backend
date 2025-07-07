@@ -7,6 +7,7 @@ const path = require("path");
 
 const app = express();
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+console.log("🔥 Backend STARTED");
 
 app.use(cors({
   origin: ["https://foxorox-frontend.vercel.app", "https://foxorox.com", "https://www.foxorox.com"],
@@ -46,6 +47,8 @@ app.post("/create-checkout-session", async (req, res) => {
 
 app.post("/check-subscription", async (req, res) => {
   console.log("Received body:", req.body);
+  console.log("Headers:", req.headers);
+
   const { email, device_id } = req.body;
   if (!email || !device_id) return res.status(400).json({ error: "Missing email or device_id" });
 
