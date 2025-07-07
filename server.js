@@ -45,6 +45,7 @@ app.post("/create-checkout-session", async (req, res) => {
 });
 
 app.post("/check-subscription", async (req, res) => {
+  console.log("Received body:", req.body);
   const { email, device_id } = req.body;
   if (!email || !device_id) return res.status(400).json({ error: "Missing email or device_id" });
 
@@ -61,10 +62,13 @@ app.post("/check-subscription", async (req, res) => {
 
     if (!devices[email]) {
       devices[email] = device_id;
-      fs.writeFileSync(devicesFile, JSON.stringify(devices));
+      fs.writeFileSync(devicesFile, JSON.stringify(devices, null, 2));
+      console.log("Saved device ID to file:", devicesFile);
     } else if (devices[email] !== device_id) {
+      console.log("Unauthorized device for:", email);
       return res.status(403).json({ error: "Unauthorized device" });
     }
+
 
     const priceId = subscriptions.data[0].items.data[0].price.id;
     const plan = Object.entries(priceIds).find(([_, val]) => val === priceId)?.[0] || "unknown";
