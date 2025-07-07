@@ -2,17 +2,11 @@ const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 require("dotenv").config();
-const admin = require("firebase-admin");
-const serviceAccount = require("/etc/secrets/foxorox-firebase-firebase-adminsdk-fbsvc-07b574d2d6.json");
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
-const firestore = admin.firestore();
+const fs = require("fs");
+const path = require("path");
 
 const app = express();
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
-console.log("🔥 Backend STARTED");
 
 app.use(cors({
   origin: ["https://foxorox-frontend.vercel.app", "https://foxorox.com", "https://www.foxorox.com"],
@@ -32,6 +26,7 @@ app.post("/create-checkout-session", async (req, res) => {
   const { plan, email } = req.body;
   if (!plan || !email) return res.status(400).json({ error: "Missing plan or email" });
 
+  const success_url = `https://foxorox-frontend.vercel.app/returning?plan=${encodeURIComponent(plan)}&email=${encodeURIComponent(email)}`;
   const cancel_url = "https://foxorox-frontend.vercel.app/plans";
 
   try {
@@ -39,11 +34,11 @@ app.post("/create-checkout-session", async (req, res) => {
       line_items: [{ price: priceIds[plan], quantity: 1 }],
       mode: "subscription",
       customer_email: email,
-      success_url: "https://foxorox-frontend.vercel.app/dashboard",
+      success_url,
       cancel_url
     });
 
-    res.json({ session_id: session.id, url: session.url });
+    res.json({ url: session.url });
   } catch (e) {
     console.error("Stripe error:", e.message);
     res.status(500).json({ error: e.message });
@@ -51,7 +46,6 @@ app.post("/create-checkout-session", async (req, res) => {
 });
 
 app.post("/check-subscription", async (req, res) => {
-  console.log("Received body:", req.body);
   const { email, device_id } = req.body;
   if (!email || !device_id) return res.status(400).json({ error: "Missing email or device_id" });
 
@@ -63,25 +57,14 @@ app.post("/check-subscription", async (req, res) => {
     const subscriptions = await stripe.subscriptions.list({ customer: customerId, status: "active", limit: 1 });
     if (!subscriptions.data.length) return res.json({ active: false });
 
-    const devicesCollection = firestore.collection("devices");
-    const doc = await devicesCollection.doc(email).get();
+    const devicesFile = path.join(__dirname, "devices.json");
+    let devices = fs.existsSync(devicesFile) ? JSON.parse(fs.readFileSync(devicesFile)) : {};
 
-    if (!doc.exists) {
-      // Pierwsze logowanie – zapisz device_id
-      await devicesCollection.doc(email).set({
-        user_id: "unknown",
-        device_id
-      });
-      console.log("Saved device ID to Firestore for:", email);
-    } else if (doc.data().device_id !== device_id) {
-      console.log("Unauthorized device for:", email);
+    if (!devices[email]) {
+      devices[email] = device_id;
+      fs.writeFileSync(devicesFile, JSON.stringify(devices));
+    } else if (devices[email] !== device_id) {
       return res.status(403).json({ error: "Unauthorized device" });
-    } else {
-      // Opcjonalnie możesz aktualizować dane
-      await devicesCollection.doc(email).set({
-        user_id: doc.data().user_id || "unknown",
-        device_id
-      }, { merge: true });
     }
 
     const priceId = subscriptions.data[0].items.data[0].price.id;
@@ -91,17 +74,6 @@ app.post("/check-subscription", async (req, res) => {
   } catch (e) {
     console.error("Check-subscription error:", e.message);
     res.status(500).json({ error: e.message });
-  }
-});
-
-app.get('/payment-status', async (req, res) => {
-  const sessionId = req.query.session_id;
-
-  try {
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
-    res.json({ status: session.payment_status });
-  } catch (err) {
-    res.status(500).json({ error: 'Nie udało się pobrać sesji' });
   }
 });
 
