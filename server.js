@@ -3,7 +3,8 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 require("dotenv").config();
 const admin = require("firebase-admin");
-const serviceAccount = require("./serviceAccountKey.json");
+const serviceAccount = require("/etc/secrets/foxorox-firebase-firebase-adminsdk-fbsvc-07b574d2d6.json");
+
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
