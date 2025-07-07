@@ -5,7 +5,6 @@ require("dotenv").config();
 const admin = require("firebase-admin");
 const serviceAccount = require("/etc/secrets/foxorox-firebase-firebase-adminsdk-fbsvc-07b574d2d6.json");
 
-
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
@@ -68,11 +67,21 @@ app.post("/check-subscription", async (req, res) => {
     const doc = await devicesCollection.doc(email).get();
 
     if (!doc.exists) {
-      await devicesCollection.doc(email).set({ device_id });
+      // Pierwsze logowanie – zapisz device_id
+      await devicesCollection.doc(email).set({
+        user_id: "unknown",
+        device_id
+      });
       console.log("Saved device ID to Firestore for:", email);
     } else if (doc.data().device_id !== device_id) {
       console.log("Unauthorized device for:", email);
       return res.status(403).json({ error: "Unauthorized device" });
+    } else {
+      // Opcjonalnie możesz aktualizować dane
+      await devicesCollection.doc(email).set({
+        user_id: doc.data().user_id || "unknown",
+        device_id
+      }, { merge: true });
     }
 
     const priceId = subscriptions.data[0].items.data[0].price.id;
