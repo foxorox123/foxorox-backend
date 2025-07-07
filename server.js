@@ -132,16 +132,6 @@ app.get("/download/:type", async (req, res) => {
     if (!isAuthorized) return res.status(403).json({ error: "Unauthorized" });
 
     const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
-
-    // 📩 Dodajemy do Firestore info, aby mailing się wysłał automatycznie
-    await firestore.collection("devices").doc(email).set({
-      user_id: "unknown",
-      device_id: "download-" + Date.now(),
-      pending_email: true
-    });
-
-    console.log(`📩 Mailing triggered for ${email}`);
-
     res.redirect(downloadUrl);
   } catch (e) {
     console.error("Download error:", e.message);
@@ -150,6 +140,5 @@ app.get("/download/:type", async (req, res) => {
 });
 
 app.get("/", (req, res) => res.send("Foxorox backend is running."));
-
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`✅ Server running on port ${port}`));
