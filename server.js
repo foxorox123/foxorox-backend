@@ -2,8 +2,13 @@ const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 require("dotenv").config();
-const fs = require("fs");
-const path = require("path");
+const admin = require("firebase-admin");
+const serviceAccount = require("./serviceAccountKey.json");
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+const firestore = admin.firestore();
 
 const app = express();
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
@@ -47,8 +52,6 @@ app.post("/create-checkout-session", async (req, res) => {
 
 app.post("/check-subscription", async (req, res) => {
   console.log("Received body:", req.body);
-  console.log("Headers:", req.headers);
-
   const { email, device_id } = req.body;
   if (!email || !device_id) return res.status(400).json({ error: "Missing email or device_id" });
 
@@ -60,18 +63,16 @@ app.post("/check-subscription", async (req, res) => {
     const subscriptions = await stripe.subscriptions.list({ customer: customerId, status: "active", limit: 1 });
     if (!subscriptions.data.length) return res.json({ active: false });
 
-    const devicesFile = path.join(__dirname, "dashboard_devices.json");
-    let devices = fs.existsSync(devicesFile) ? JSON.parse(fs.readFileSync(devicesFile)) : {};
+    const devicesCollection = firestore.collection("devices");
+    const doc = await devicesCollection.doc(email).get();
 
-    if (!devices[email]) {
-      devices[email] = device_id;
-      fs.writeFileSync(devicesFile, JSON.stringify(devices, null, 2));
-      console.log("Saved device ID to file:", devicesFile);
-    } else if (devices[email] !== device_id) {
+    if (!doc.exists) {
+      await devicesCollection.doc(email).set({ device_id });
+      console.log("Saved device ID to Firestore for:", email);
+    } else if (doc.data().device_id !== device_id) {
       console.log("Unauthorized device for:", email);
       return res.status(403).json({ error: "Unauthorized device" });
     }
-
 
     const priceId = subscriptions.data[0].items.data[0].price.id;
     const plan = Object.entries(priceIds).find(([_, val]) => val === priceId)?.[0] || "unknown";
@@ -88,7 +89,6 @@ app.get('/payment-status', async (req, res) => {
 
   try {
     const session = await stripe.checkout.sessions.retrieve(sessionId);
-
     res.json({ status: session.payment_status });
   } catch (err) {
     res.status(500).json({ error: 'Nie udało się pobrać sesji' });
