@@ -67,7 +67,6 @@ app.post("/check-subscription", async (req, res) => {
     const doc = await devicesCollection.doc(email).get();
 
     if (!doc.exists) {
-      // Pierwsze logowanie – zapisz device_id
       await devicesCollection.doc(email).set({
         user_id: "unknown",
         device_id
@@ -77,7 +76,6 @@ app.post("/check-subscription", async (req, res) => {
       console.log("Unauthorized device for:", email);
       return res.status(403).json({ error: "Unauthorized device" });
     } else {
-      // Opcjonalnie możesz aktualizować dane
       await devicesCollection.doc(email).set({
         user_id: doc.data().user_id || "unknown",
         device_id
@@ -131,7 +129,8 @@ app.get("/download/:type", async (req, res) => {
 
     if (!isAuthorized) return res.status(403).json({ error: "Unauthorized" });
 
-    const downloadUrl = https://drive.google.com/uc?export=download&id=${fileId};
+    const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+
     res.redirect(downloadUrl);
   } catch (e) {
     console.error("Download error:", e.message);
@@ -140,5 +139,6 @@ app.get("/download/:type", async (req, res) => {
 });
 
 app.get("/", (req, res) => res.send("Foxorox backend is running."));
+
 const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(✅ Server running on port ${port}));
+app.listen(port, () => console.log(`✅ Server running on port ${port}`));
