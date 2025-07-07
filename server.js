@@ -3,6 +3,7 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 require("dotenv").config();
 const admin = require("firebase-admin");
+const nodemailer = require("nodemailer");
 const serviceAccount = require("/etc/secrets/foxorox-firebase-firebase-adminsdk-fbsvc-07b574d2d6.json");
 
 admin.initializeApp({
@@ -28,6 +29,49 @@ const priceIds = {
   global_yearly: "price_1RY0cLQvveS6IpXvdkA3BN2D"
 };
 
+// ✅ Funkcja wysyłająca e-mail:
+async function sendWelcomeEmail(email, device_id) {
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS
+    }
+  });
+
+  const mailOptions = {
+    from: `"Foxorox Support" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: "🎉 Your Foxorox Access Details",
+    html: `
+      <div style="font-family: Arial, sans-serif; color: #333; padding: 20px;">
+        <h2 style="color: #ff6600;">
+          <img src="https://foxorox.com/logo-foxorox.png" alt="Foxorox" style="height: 50px; vertical-align: middle;" />
+          Welcome to Foxorox 🚀
+        </h2>
+        <p>Hello <strong>${email}</strong>,</p>
+        <p>Thank you for subscribing to Foxorox.</p>
+        <p><strong>Your Device ID (required for login to AI Program):</strong></p>
+        <div style="padding: 15px; background: #f4f4f4; border: 1px dashed #ccc; font-size: 18px; margin: 20px 0;">
+          ${device_id}
+        </div>
+        <p>You can download your Foxorox software here:</p>
+        <a href="https://foxorox-frontend.vercel.app/dashboard"
+           style="display: inline-block; padding: 10px 20px; background-color: #ff6600; color: white; text-decoration: none; border-radius: 5px;">
+          Go to Dashboard
+        </a>
+        <hr style="margin-top: 30px;">
+        <p style="font-size: 12px; color: #777;">
+          If you received this by mistake, please ignore this message.
+        </p>
+      </div>
+    `
+  };
+
+  await transporter.sendMail(mailOptions);
+}
+
+// ✅ Stripe Checkout
 app.post("/create-checkout-session", async (req, res) => {
   const { plan, email } = req.body;
   if (!plan || !email) return res.status(400).json({ error: "Missing plan or email" });
@@ -50,6 +94,7 @@ app.post("/create-checkout-session", async (req, res) => {
   }
 });
 
+// ✅ Subscriptions
 app.post("/check-subscription", async (req, res) => {
   console.log("Received body:", req.body);
   const { email, device_id } = req.body;
@@ -67,17 +112,16 @@ app.post("/check-subscription", async (req, res) => {
     const doc = await devicesCollection.doc(email).get();
 
     if (!doc.exists) {
-      // Pierwsze logowanie – zapisz device_id
       await devicesCollection.doc(email).set({
         user_id: "unknown",
         device_id
       });
       console.log("Saved device ID to Firestore for:", email);
+      await sendWelcomeEmail(email, device_id);
     } else if (doc.data().device_id !== device_id) {
       console.log("Unauthorized device for:", email);
       return res.status(403).json({ error: "Unauthorized device" });
     } else {
-      // Opcjonalnie możesz aktualizować dane
       await devicesCollection.doc(email).set({
         user_id: doc.data().user_id || "unknown",
         device_id
@@ -94,6 +138,7 @@ app.post("/check-subscription", async (req, res) => {
   }
 });
 
+// ✅ Payment status
 app.get('/payment-status', async (req, res) => {
   const sessionId = req.query.session_id;
 
@@ -105,6 +150,7 @@ app.get('/payment-status', async (req, res) => {
   }
 });
 
+// ✅ Downloads
 app.get("/download/:type", async (req, res) => {
   const { email } = req.query;
   const { type } = req.params;
@@ -139,6 +185,7 @@ app.get("/download/:type", async (req, res) => {
   }
 });
 
+// ✅ Health check
 app.get("/", (req, res) => res.send("Foxorox backend is running."));
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`✅ Server running on port ${port}`));
