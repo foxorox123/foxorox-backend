@@ -108,8 +108,8 @@ app.get("/download/:type", async (req, res) => {
   const { type } = req.params;
 
   const googleDriveFileIds = {
-    basic: "1Rrx0PuvXIqniixZRmi1r-rKYptczp6P5",
-    premium: "1g8TkbYM8kjYGnnepYR8ZG7jkOU0v6dc1"
+    basic: "1WEphARR_OwfXfiG8MyaCSM7vkNWVxycS",
+    premium: "1sYftJHEosFnL0vSvTTOQQ6BuNvZuO3N6"
   };
   const fileId = googleDriveFileIds[type];
   if (!fileId || !email) return res.status(400).json({ error: "Invalid request" });
