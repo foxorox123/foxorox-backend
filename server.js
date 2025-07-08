@@ -22,10 +22,10 @@ app.use(cors({
 app.use(bodyParser.json());
 
 const priceIds = {
-  basic_monthly: "price_1RXdZUQvveS6IpXvhLVrxK4B",
-  basic_yearly: "price_1RY3QnQvveS6IpXvZF5cQfW2",
-  global_monthly: "price_1RY0pYQvveS6IpXvhyJQEk4Y",
-  global_yearly: "price_1RY0cLQvveS6IpXvdkA3BN2D"
+  basic_monthly: "price_1RiZxFJ4fqnNjw0F5z3SCLsX",
+  basic_yearly: "price_1RiZz3J4fqnNjw0FDoBDFnUb",
+  global_monthly: "price_1Ria0DJ4fqnNjw0Fiy21BPEq",
+  global_yearly: "price_1Ria1PJ4fqnNjw0FxoFy0z6Q"
 };
 
 app.post("/create-checkout-session", async (req, res) => {
