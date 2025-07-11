@@ -34,6 +34,6 @@ downloads/*.zip
 *.tgz
 *.tmp
 *.swp
-".env" 
-foxorox-firebase-firebase-adminsdk-fbsvc-07b574d2d6.json 
-".env" 
+
+# === SENSITIVE FILES ===
+foxorox-firebase-firebase-adminsdk-fbsvc-07b574d2d6.json
