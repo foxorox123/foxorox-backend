@@ -33,7 +33,8 @@ const priceIds = {
   basic_monthly: "price_1RiZxFJ4fqnNjw0F5z3SCLsX",
   basic_yearly: "price_1RiZz3J4fqnNjw0FDoBDFnUb",
   global_monthly: "price_1Ria0DJ4fqnNjw0Fiy21BPEq",
-  global_yearly: "price_1Ria1PJ4fqnNjw0FxoFy0z6Q"
+  global_yearly: "price_1Ria1PJ4fqnNjw0FxoFy0z6Q",
+  forex_monthly: "price_1RwgJMJ4fqnNjw0FyDI9GsiC" // 🆕 FOREX
 };
 
 app.post("/create-checkout-session", async (req, res) => {
@@ -128,7 +129,8 @@ app.get("/download/:type", async (req, res) => {
 
   const googleDriveFileIds = {
     basic: "1x5sAdSm2arhCudBlAVv64ChvTIZgjIrR",
-    premium: "1ILwtqwHZLkSuDPQZXD9tJcz3hGpqPJsO"
+    premium: "1ILwtqwHZLkSuDPQZXD9tJcz3hGpqPJsO",
+    forex: "1Lfus3KFyvhLNbUC9KZwZrC7z9CvBJDI9" // 🆕 FOREX (ID z Google Drive)
   };
   const fileId = googleDriveFileIds[type];
   if (!fileId || !email)
@@ -149,6 +151,8 @@ app.get("/download/:type", async (req, res) => {
       return res.status(403).json({ error: "No active subscription" });
 
     const priceId = subscriptions.data[0].items.data[0].price.id;
+
+    // Historyczne ID (zostawione jak było)
     const allowedBasic = [
       "price_1RXdZUQvveS6IpXvhLVrxK4B",
       "price_1RY3QnQvveS6IpXvZF5cQfW2"
@@ -157,14 +161,19 @@ app.get("/download/:type", async (req, res) => {
       "price_1RY0pYQvveS6IpXvhyJQEk4Y",
       "price_1RY0cLQvveS6IpXvdkA3BN2D"
     ];
+    // 🆕 FOREX
+    const allowedForex = [
+      "price_1RwgJMJ4fqnNjw0FyDI9GsiC"
+    ];
+
     const isAuthorized =
       (type === "basic" && allowedBasic.includes(priceId)) ||
-      (type === "premium" && allowedPremium.includes(priceId));
+      (type === "premium" && allowedPremium.includes(priceId)) ||
+      (type === "forex" && allowedForex.includes(priceId));
 
     if (!isAuthorized) return res.status(403).json({ error: "Unauthorized" });
 
     const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
-
     res.redirect(downloadUrl);
   } catch (e) {
     console.error("Download error:", e.message);
